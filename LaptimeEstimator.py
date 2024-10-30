@@ -42,7 +42,59 @@ for energyOut in energyOutArray:
     SOCEstimatedArray.append(currentSOC)
     prevSOC = currentSOC
 
+lowerBoundSpeedArray = [] 
+targetSpeedArray = df['Target Speed'] 
+for targetSpeed in targetSpeedArray: 
+    lowerBoundSpeed = 0
+    diff = 1000 
+    for speed in speedArray: 
+        if (abs(targetSpeed-lowerBoundSpeed) < diff): 
+            lowerBoundSpeed = targetSpeed 
+            diff = abs(targetSpeed-lowerBoundSpeed) 
+    lowerBoundSpeedArray.append(lowerBoundSpeed) 
 
+upperBoundSpeedArray = [] 
+for speed in lowerBoundSpeedArray: 
+    upperBoundSpeedArray.append(speed + 2.5) 
+        
+zephyrPowerArray = df['Zephyr Power'] 
+excaliburScalingArray = df['Excalibur Scaling'] 
+
+excaliburPowerArray = [] 
+for i in range(len(zephyrPowerArray)): 
+    excaliburPowerArray.append(excaliburScalingArray[i] * zephyrPowerArray[i]) 
+
+
+powerEstimatedArray = [] 
+
+closestUpperBoundPowerArray = [] 
+
+for i in range(len(upperBoundSpeedArray)): 
+    speedIndex = 0 
+    diff = 1000 
+    for j in range(len(speedArray)): 
+        if ( (abs(upperBoundSpeedArray[i]-speedArray[j])) < diff ): 
+            diff = abs(upperBoundSpeedArray[i]-speedArray[j]) 
+            speedIndex = j 
+
+    closestUpperBoundPowerArray.append(excaliburPowerArray[speedIndex]) 
+
+
+closestLowerBoundPowerArray = [] 
+
+for i in range(len(lowerBoundSpeedArray)): 
+    speedIndex = 0 
+    diff = 1000 
+    for j in range(len(speedArray)): 
+        if ( (abs(lowerBoundSpeedArray[i]-speedArray[j])) < diff ): 
+            diff = abs(lowerBoundSpeedArray[i]-speedArray[j]) 
+            speedIndex = j 
+
+    closestLowerBoundPowerArray.append(excaliburPowerArray[speedIndex]) 
+    
+    
+for i in range(len(closestUpperBoundPowerArray)): 
+    powerEstimatedArray.append( (closestUpperBoundPowerArray[i] - closestLowerBoundPowerArray[i]) * (targetSpeedArray[i] - lowerBoundSpeedArray[i])/(upperBoundSpeedArray[i] - lowerBoundSpeedArray[i]) + closestLowerBoundPowerArray[i]
 
 
 
