@@ -27,9 +27,11 @@ for solarPowerVal in solarPowerArray:
     energyInArray.append(solarPowerVal/2) 
 
 user_input = int(input("Please enter a speed value (an integer in mph): "))
-#speedArray = df['Speed']
-speedArray = []  
-speedArray.append(user_input)
+speedArray = df['Speed']
+
+targetSpeedArray = []
+targetSpeedArray.append(user_input)
+
 #speedArray = speedArray[~np.isnan(speedArray)]
 
 lapTimeArray = []
@@ -50,8 +52,8 @@ for energyOut in energyOutArray:
     prevSOC = currentSOC
 
 lowerBoundSpeedArray = [] 
-targetSpeedArray = df['Target Speed'] 
-targetSpeedArray = targetSpeedArray[~np.isnan(targetSpeedArray)]
+#targetSpeedArray = df['Target Speed']
+
 
 for targetSpeed in targetSpeedArray:
     lowerBoundSpeed = 0
