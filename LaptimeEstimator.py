@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np 
 
 SOLAR_RAY_EFFICIENCY_PERCENTAGE = 0.254 
 ARRAY_SIZE = 3.98
@@ -7,11 +8,12 @@ BATTERKWH = 4.68
 
 
 # Read the CSV file
-df = pd.read_csv('/Users/meerakeswani/Downloads/FSGP\ 2024\ Spreadsheeting\ -\ Scrutineering\ Affected\ Data.csv')
+df = pd.read_csv('/Users/meerakeswani/Downloads/calsoltest.csv')
 
 # Output the DataFrame
 
-GHIArray = df['GHI'] 
+GHI_Array = df['GHI'] 
+GHI_Array = GHI_Array[~np.isnan(GHI_Array)]
 
 solarPowerArray = [] 
 
@@ -24,7 +26,12 @@ energyInArray = []
 for solarPowerVal in solarPowerArray: 
     energyInArray.append(solarPowerVal/2) 
 
-speedArray = df['Speed']
+user_input = int(input("Please enter a speed value (an integer in mph): "))
+#speedArray = df['Speed']
+speedArray = []  
+speedArray.append(user_input)
+#speedArray = speedArray[~np.isnan(speedArray)]
+
 lapTimeArray = []
 for speed in speedArray: 
     lapTimeArray.append(LAP_LENGTH/(speed/60)) 
@@ -44,13 +51,15 @@ for energyOut in energyOutArray:
 
 lowerBoundSpeedArray = [] 
 targetSpeedArray = df['Target Speed'] 
-for targetSpeed in targetSpeedArray: 
+targetSpeedArray = targetSpeedArray[~np.isnan(targetSpeedArray)]
+
+for speed in speedArray: 
     lowerBoundSpeed = 0
     diff = 1000 
-    for speed in speedArray: 
-        if (abs(targetSpeed-lowerBoundSpeed) < diff): 
+    for targetSpeed in targetSpeedArray: 
+        if (abs(targetSpeed-speed) < diff): 
             lowerBoundSpeed = targetSpeed 
-            diff = abs(targetSpeed-lowerBoundSpeed) 
+            diff = abs(targetSpeed-speed) 
     lowerBoundSpeedArray.append(lowerBoundSpeed) 
 
 upperBoundSpeedArray = [] 
@@ -58,7 +67,9 @@ for speed in lowerBoundSpeedArray:
     upperBoundSpeedArray.append(speed + 2.5) 
         
 zephyrPowerArray = df['Zephyr Power'] 
+zephyrPowerArray = zephyrPowerArray[~np.isnan(zephyrPowerArray)]
 excaliburScalingArray = df['Excalibur Scaling'] 
+excaliburScalingArray = excaliburScalingArray[~np.isnan(excaliburScalingArray)]
 
 excaliburPowerArray = [] 
 for i in range(len(zephyrPowerArray)): 
@@ -94,7 +105,11 @@ for i in range(len(lowerBoundSpeedArray)):
     
     
 for i in range(len(closestUpperBoundPowerArray)): 
-    powerEstimatedArray.append( (closestUpperBoundPowerArray[i] - closestLowerBoundPowerArray[i]) * (targetSpeedArray[i] - lowerBoundSpeedArray[i])/(upperBoundSpeedArray[i] - lowerBoundSpeedArray[i]) + closestLowerBoundPowerArray[i]
+    powerEstimatedArray.append( (closestUpperBoundPowerArray[i] - closestLowerBoundPowerArray[i]) * (targetSpeedArray[i] - lowerBoundSpeedArray[i])/(upperBoundSpeedArray[i] - lowerBoundSpeedArray[i]) + closestLowerBoundPowerArray[i])
 
 
+
+print( "lower bound speed: ", lowerBoundSpeedArray[0], " mph")
+print( "upper bound speed: ", upperBoundSpeedArray[0], " mph") 
+print("power estimated: ", powerEstimatedArray[0], " W")
 
