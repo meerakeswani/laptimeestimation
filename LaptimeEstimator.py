@@ -23,14 +23,14 @@ api_key = "hL4glLjAEaCIASrHqN7eIIk5UwiMmg9q"
 if response.status_code == 200:
     data = response.json() 
 
-ghi_values = [entry.get("ghi") for entry in data.get("forecasts", [])]
+GHI_Array = [entry.get("ghi") for entry in data.get("forecasts", [])]
 
     # Write GHI values to a CSV file with a single column
     with open("ghi_values.csv", mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["GHI"])  # Write header
 
-        for ghi in ghi_values:
+        for ghi in GHI_Array:
             writer.writerow([ghi])  # Write each GHI value as a single-row entry
 
 solarPowerArray = [] 
