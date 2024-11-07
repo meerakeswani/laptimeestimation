@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np 
+import requests
+import csv
 
 SOLAR_RAY_EFFICIENCY_PERCENTAGE = 0.254 
 ARRAY_SIZE = 3.98
@@ -8,12 +10,28 @@ BATTERKWH = 4.68
 
 
 # Read the CSV file
-df = pd.read_csv('/Users/meerakeswani/Downloads/calsoltest.csv')
+df = pd.read_csv('./Downloads/calsoltest.csv')
 
 # Output the DataFrame
 
-GHI_Array = df['GHI'] 
-GHI_Array = GHI_Array[~np.isnan(GHI_Array)]
+#GHI_Array = df['GHI'] 
+#GHI_Array = GHI_Array[~np.isnan(GHI_Array)]
+
+api_url = "https://api.solcast.com.au/world_pv_power/estimated_actuals?latitude=37.871523&longitude=-122.273042&capacity=5&tilt=33&azimuth=180&hours=168"
+api_key = "hL4glLjAEaCIASrHqN7eIIk5UwiMmg9q"
+
+if response.status_code == 200:
+    data = response.json() 
+
+ghi_values = [entry.get("ghi") for entry in data.get("forecasts", [])]
+
+    # Write GHI values to a CSV file with a single column
+    with open("ghi_values.csv", mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["GHI"])  # Write header
+
+        for ghi in ghi_values:
+            writer.writerow([ghi])  # Write each GHI value as a single-row entry
 
 solarPowerArray = [] 
 
