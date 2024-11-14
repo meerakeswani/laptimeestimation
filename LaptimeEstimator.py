@@ -1,135 +1,174 @@
 import pandas as pd
-import numpy as np 
+import numpy as np
 import requests
 import csv
+from datetime import datetime
 
-SOLAR_RAY_EFFICIENCY_PERCENTAGE = 0.254 
+SOLAR_RAY_EFFICIENCY_PERCENTAGE = 0.254
 ARRAY_SIZE = 3.98
 LAP_LENGTH = 3.15 #arbitrary value
 BATTERKWH = 4.68
 
+#INITIALIZE ARRAYS
+solarPowerArray = []
+energyInArray = []
+targetSpeedArray = []
+lapTimeArray = []
+energyOutArray = []
+powerEstimatedArray = []
+SOCEstimatedArray = []
+lowerBoundSpeedArray = []
+upperBoundSpeedArray = []
+
 
 # Read the CSV file
-df = pd.read_csv('./Downloads/calsoltest.csv')
+df = pd.read_csv('/Users/meerakeswani/Downloads/calsoltest.csv')
+dfGHI = pd.read_csv('/Users/meerakeswani/Downloads/calsoltest.csv')
 
 # Output the DataFrame
 
-#GHI_Array = df['GHI'] 
+#GHI_Array = df['GHI']
 #GHI_Array = GHI_Array[~np.isnan(GHI_Array)]
+api_key = "j_sPiCuWG1VYY_MknTU5hA8aHryohaQk"
+latitude = 37.871523  # Replace with your location's latitude
+longitude = -122.273042  # Replace with your location's longitude
 
-api_url = "https://api.solcast.com.au/world_pv_power/estimated_actuals?latitude=37.871523&longitude=-122.273042&capacity=5&tilt=33&azimuth=180&hours=168"
-api_key = "hL4glLjAEaCIASrHqN7eIIk5UwiMmg9q"
+url = f'https://api.solcast.com.au/world_radiation/estimated_actuals?latitude={latitude}&longitude={longitude}&format=json&api_key={api_key}'
+
+response = requests.get(url)
+
 
 if response.status_code == 200:
-    data = response.json() 
+    try:
+        data = response.json()
+        ghi_data =[entry['ghi'] for entry in data['estimated_actuals']]
+        time_data = [entry['period_end'] for entry in data['estimated_actuals']]
+        print("Data retrieved successfully:", ghi_data)
+    except requests.JSONDecodeError:
+        print("Error: Response is not in JSON format.")
+else:
+    print("Error fetching data:", response.status_code, response.text)
 
-GHI_Array = [entry.get("ghi") for entry in data.get("forecasts", [])]
 
-    # Write GHI values to a CSV file with a single column
-with open("calsoltest.csv", mode="w", newline="") as file:
-    writer = csv.writer(file)
-    writer.writerow(["GHI"])  # Write header
 
-    for ghi in GHI_Array:
-        writer.writerow([ghi])  # Write each GHI value as a single-row entry
+dfGHI = pd.DataFrame()
 
-solarPowerArray = [] 
+# Add the new data as a column
+dfGHI['Time'] = time_data
+dfGHI['GHI_new'] = ghi_data  # Ensure ghi_data has the same length as the existing DataFrame
 
-for ghi_val in GHI_Array: 
+
+# Save the updated DataFrame back to the CSV file
+dfGHI.to_csv('/Users/meerakeswani/Downloads/calsoltestGHI.csv', index=False)
+
+
+
+
+for ghi_val in ghi_data:
     solarPowerArray.append(ghi_val*SOLAR_RAY_EFFICIENCY_PERCENTAGE*ARRAY_SIZE)
 
 
-energyInArray = [] 
 
-for solarPowerVal in solarPowerArray: 
-    energyInArray.append(solarPowerVal/2) 
+for solarPowerVal in solarPowerArray:
+    energyInArray.append(solarPowerVal/2)
 
 user_input = int(input("Please enter a speed value (an integer in mph): "))
 speedArray = df['Speed']
 
-targetSpeedArray = []
+
 targetSpeedArray.append(user_input)
 
 #speedArray = speedArray[~np.isnan(speedArray)]
 
-lapTimeArray = []
-for speed in speedArray: 
-    lapTimeArray.append(LAP_LENGTH/(speed/60)) 
 
-energyOutArray = []
-powerEstimatedArray = []
-for power in powerEstimatedArray: 
-    for energyIn in energyInArray:
-        energyOutArray.append(powerEstimatedArray/2 - energyIn) 
 
-SOCEstimatedArray = []
-## CHECK FOR FIRST VALUE 
-for energyOut in energyOutArray:
-    currentSOC = prevSOC - (energyOut / BATTERKWH * 1000)
-    SOCEstimatedArray.append(currentSOC)
-    prevSOC = currentSOC
 
-lowerBoundSpeedArray = [] 
+
 #targetSpeedArray = df['Target Speed']
 
 
 for targetSpeed in targetSpeedArray:
     lowerBoundSpeed = 0
-    diff = 1000 
+    diff = 1000
     for speed in speedArray:
         if (abs(targetSpeed-speed) < diff):
             lowerBoundSpeed = speed
             diff = abs(targetSpeed-speed)
-    lowerBoundSpeedArray.append(lowerBoundSpeed) 
+    lowerBoundSpeedArray.append(lowerBoundSpeed)
 
-upperBoundSpeedArray = [] 
-for speed in lowerBoundSpeedArray: 
-    upperBoundSpeedArray.append(speed + 2.5) 
+
+for speed in lowerBoundSpeedArray:
+    upperBoundSpeedArray.append(speed + 2.5)
         
-zephyrPowerArray = df['Zephyr Power'] 
+zephyrPowerArray = df['Zephyr Power']
 zephyrPowerArray = zephyrPowerArray[~np.isnan(zephyrPowerArray)]
-excaliburScalingArray = df['Excalibur Scaling'] 
+excaliburScalingArray = df['Excalibur Scaling']
 excaliburScalingArray = excaliburScalingArray[~np.isnan(excaliburScalingArray)]
 
-excaliburPowerArray = [] 
-for i in range(len(zephyrPowerArray)): 
-    excaliburPowerArray.append(excaliburScalingArray[i] * zephyrPowerArray[i]) 
+excaliburPowerArray = []
+for i in range(len(zephyrPowerArray)):
+    excaliburPowerArray.append(excaliburScalingArray[i] * zephyrPowerArray[i])
 
 
-powerEstimatedArray = [] 
 
-closestUpperBoundPowerArray = [] 
+closestUpperBoundPowerArray = []
 
-for i in range(len(upperBoundSpeedArray)): 
-    speedIndex = 0 
-    diff = 1000 
-    for j in range(len(speedArray)): 
-        if ( (abs(upperBoundSpeedArray[i]-speedArray[j])) < diff ): 
-            diff = abs(upperBoundSpeedArray[i]-speedArray[j]) 
-            speedIndex = j 
+for i in range(len(upperBoundSpeedArray)):
+    speedIndex = 0
+    diff = 1000
+    for j in range(len(speedArray)):
+        if ( (abs(upperBoundSpeedArray[i]-speedArray[j])) < diff ):
+            diff = abs(upperBoundSpeedArray[i]-speedArray[j])
+            speedIndex = j
 
-    closestUpperBoundPowerArray.append(excaliburPowerArray[speedIndex]) 
+    closestUpperBoundPowerArray.append(excaliburPowerArray[speedIndex])
 
 
-closestLowerBoundPowerArray = [] 
+closestLowerBoundPowerArray = []
 
-for i in range(len(lowerBoundSpeedArray)): 
-    speedIndex = 0 
-    diff = 1000 
-    for j in range(len(speedArray)): 
-        if ( (abs(lowerBoundSpeedArray[i]-speedArray[j])) < diff ): 
-            diff = abs(lowerBoundSpeedArray[i]-speedArray[j]) 
-            speedIndex = j 
+for i in range(len(lowerBoundSpeedArray)):
+    speedIndex = 0
+    diff = 1000
+    for j in range(len(speedArray)):
+        if ( (abs(lowerBoundSpeedArray[i]-speedArray[j])) < diff ):
+            diff = abs(lowerBoundSpeedArray[i]-speedArray[j])
+            speedIndex = j
 
-    closestLowerBoundPowerArray.append(excaliburPowerArray[speedIndex]) 
+    closestLowerBoundPowerArray.append(excaliburPowerArray[speedIndex])
     
     
-for i in range(len(closestUpperBoundPowerArray)): 
+for i in range(len(closestUpperBoundPowerArray)):
     powerEstimatedArray.append( (closestUpperBoundPowerArray[i] - closestLowerBoundPowerArray[i]) * (targetSpeedArray[i] - lowerBoundSpeedArray[i])/(upperBoundSpeedArray[i] - lowerBoundSpeedArray[i]) + closestLowerBoundPowerArray[i])
 
+for speed in speedArray:
+    lapTimeArray.append(LAP_LENGTH/(speed/60))
+
+for power in powerEstimatedArray:
+    for energyIn in energyInArray:
+        energyOutArray.append(power/2 - energyIn)
+
+
+## CHECK FOR FIRST VALUE
+prevSOC = 70 #Change later
+for energyOut in energyOutArray:
+    currentSOC = prevSOC - (energyOut / BATTERKWH * 1000)
+    SOCEstimatedArray.append(currentSOC)
+    prevSOC = currentSOC
+
+#calculation for whole day
+energyInTotal = 0
+for i in range(0,16):
+    energyInTotal += energyOutArray[i]
+    
+energyOutTotal = 0
+for i in range(0,16):
+    energyOutTotal += energyOutArray[i]
 
 
 print( "target lower bound speed: ", lowerBoundSpeedArray[0], " mph")
 print( "target upper bound speed: ", upperBoundSpeedArray[0], " mph")
 print("power estimated: ", powerEstimatedArray[0], " W")
+print("energy in for whole day: ", energyInTotal)
+print("energy out for whole day: ", energyOutTotal)
+
 
